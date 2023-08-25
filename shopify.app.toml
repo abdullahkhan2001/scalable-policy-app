@@ -2,18 +2,18 @@
 
 name = "planter checkout customization"
 client_id = "dad190a75b601432fddd07e0122ecf95"
-application_url = "https://anyway-affiliated-tail-packet.trycloudflare.com"
+application_url = "https://proc-bizarre-lock-rc.trycloudflare.com"
 embedded = true
 
 [access_scopes]
 # Learn more at https://shopify.dev/docs/apps/tools/cli/configuration#access_scopes
-scopes = "write_products"
+scopes = "write_products,read_products"
 
 [auth]
 redirect_urls = [
-  "https://anyway-affiliated-tail-packet.trycloudflare.com/auth/callback",
-  "https://anyway-affiliated-tail-packet.trycloudflare.com/auth/shopify/callback",
-  "https://anyway-affiliated-tail-packet.trycloudflare.com/api/auth/callback"
+  "https://proc-bizarre-lock-rc.trycloudflare.com/auth/callback",
+  "https://proc-bizarre-lock-rc.trycloudflare.com/auth/shopify/callback",
+  "https://proc-bizarre-lock-rc.trycloudflare.com/api/auth/callback"
 ]
 
 [webhooks]

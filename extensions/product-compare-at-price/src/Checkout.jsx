@@ -1,15 +1,14 @@
 
 import {
-  Banner,
   useApi,
-  useTranslate,
   reactExtension,
   useCartLines,
   Text,
   BlockStack,
   GridItem,
   Grid,
-  InlineLayout
+  InlineLayout,
+  useTotalAmount,
 } from '@shopify/ui-extensions-react/checkout';
 import { useEffect, useState } from 'react';
 
@@ -18,47 +17,65 @@ export default reactExtension(
   () => <Extension />,
 );
 
+
+const currencies = {
+  "AED": "د.إ",
+  "PKR": "Rs",
+  "AFN": "؋",
+  "ALL": "L",
+  "AMD": "֏",
+  "ANG": "ƒ",
+  "AOA": "Kz",
+  "ARS": "$",
+  "AUD": "$",
+  "AWG": "ƒ",
+  "AZN": "₼",
+  "BAM": "KM",
+  "BBD": "$",
+  "BDT": "৳",
+  "USD": "$",
+  "UYU": "$U",
+  "VES": "Bs",
+  "VND": "₫",
+  "ZMW": "ZK",
+  "ZWL": "Z$",
+};
+
 function Extension() {
-  const [products, setProducts] = useState([]);
-  const [loading, setLoading] = useState(false);
   const [compareAtPrice, setCompareAtPrice] = useState(0);
+  const [currency, setCurrency] = useState('');
   const { query } = useApi();
   const cartLine = useCartLines()
   const [cartLineproductPrice, setCartLineProductPrice] = useState(0);
   const ProductIds = cartLine.map((item) => item.merchandise.title);
-
+  const { amount, currencyCode } = useTotalAmount();
 
   async function fetchProducts() {
-    setLoading(true)
+
     try {
       const queries = ProductIds.map((pId) => ({
         query: `
-          query {
-            products(first: 1, query: "${pId}") {
-              nodes {
-                id
-                title
-                images(first: 1) {
-                  nodes {
-                    url
+        query {
+          products(first: 100, query: "${pId}") {
+            nodes {
+              id
+              title
+              variants(first: 1) {
+                nodes {
+                  id
+                  price {
+                    amount
+                    currencyCode
                   }
-                }
-                variants(first: 1) {
-                  nodes {
-                    id
-                    price {
-                      amount
-                      currencyCode
-                    }
-                    compareAtPrice {
-                      amount
-                      currencyCode
-                    }
+                  compareAtPrice {
+                    amount
+                    currencyCode
                   }
                 }
               }
             }
           }
+        }
         `,
       }));
 
@@ -68,83 +85,62 @@ function Extension() {
 
       // @ts-ignore
       const fetchedProducts = responses.map((response) => response.data.products.nodes[0]);
-      // @ts-ignore
-      setProducts(fetchedProducts);
+      // console.log(fetchedProducts)
+
+      // Perform calculations immediately after setting products
+      let totalCompareAtPrice = 0;
+      let totalCartLineProductPrice = 0;
+
+      fetchedProducts.forEach((p) => {
+        //@ts-ignore
+        if (!isNaN(Number(p.variants.nodes[0]?.compareAtPrice?.amount))) {
+          //@ts-ignore
+          totalCompareAtPrice += Number(p.variants.nodes[0]?.compareAtPrice?.amount);
+          // console.log('totalCompareAtPrice:', totalCompareAtPrice);
+
+          //@ts-ignore
+          setCurrency(currencies[p.variants.nodes[0]?.compareAtPrice?.currencyCode]);
+        }
+        //@ts-ignore
+        totalCartLineProductPrice += Number(p.variants.nodes[0].price.amount);
+        // console.log('totalCartLineProductPrice:', totalCartLineProductPrice);
+
+      });
+
+      setCompareAtPrice(totalCompareAtPrice);
+      setCartLineProductPrice(totalCartLineProductPrice);
+
     } catch (error) {
-      console.error(error);
-    } finally {
-      setLoading(false);
+      console.error(error)
     }
   }
-
-  const checkStatus = () => {
-    if (loading) {
-      try {
-        let totalCompareAtPrice = 0;
-        let totalCartLineProductPrice = 0;
-
-        products.forEach((p) => {
-          //@ts-ignore
-          if (!isNaN(parseFloat(p.variants.nodes[0]?.compareAtPrice?.amount))) {
-            //@ts-ignore
-            totalCompareAtPrice += parseFloat(p.variants.nodes[0]?.compareAtPrice?.amount);
-          }
-          //@ts-ignore
-          totalCartLineProductPrice += parseFloat(p.variants.nodes[0].price.amount);
-        });
-
-        console.log('totalCompareAtPrice:', totalCompareAtPrice);
-        console.log('totalCartLineProductPrice:', totalCartLineProductPrice);
-
-        setCompareAtPrice(totalCompareAtPrice);
-        setCartLineProductPrice(totalCartLineProductPrice);
-      } catch (error) {
-        console.error(error);
-      }
-    }
-  }
-
-
   useEffect(() => {
-    async function fetchDataAndStatus() {
-      await fetchProducts();
-      await checkStatus();
-    }
-    fetchDataAndStatus();
-  }, [])
+    fetchProducts();
+  }, [cartLine]);
 
   return (
     <>
-      {compareAtPrice > 0 ?
-        <Grid spacing={'none'} padding={'none'}>
-          <GridItem padding={'none'}>
-            <InlineLayout spacing={'none'} padding={'none'}>
-              <BlockStack inlineAlignment={'start'} spacing={'none'} padding={'none'}>
-                <Text>Total: </Text>
-              </BlockStack>
-              <BlockStack inlineAlignment={'end'} spacing={'none'} padding={'none'}>
-                <Text emphasis='bold'>{Math.round(compareAtPrice)}</Text>
-              </BlockStack>
-            </InlineLayout>
-            <InlineLayout spacing={'none'} padding={'none'}>
-              <BlockStack inlineAlignment={'start'} spacing={'none'} padding={'none'}>
-                <Text>Your's Saving: </Text>
-              </BlockStack>
-              <BlockStack inlineAlignment={'end'} spacing={'none'} padding={'none'}>
-                <Text emphasis='bold'>{Math.round(cartLineproductPrice - compareAtPrice)}</Text>
-              </BlockStack>
-            </InlineLayout>
+      <Grid spacing={'none'} padding={'none'}>
+        <GridItem padding={'none'}>
+          <InlineLayout spacing={'none'} padding={'none'}>
+            <BlockStack inlineAlignment={'start'} spacing={'none'} padding={'none'}>
+              <Text>Total: </Text>
+            </BlockStack>
+            <BlockStack inlineAlignment={'end'} spacing={'none'} padding={'none'}>
+              <Text emphasis='bold'>{Math.round(compareAtPrice) > 0 ? amount : cartLineproductPrice} {currency}</Text>
+            </BlockStack>
+          </InlineLayout>
 
-          </GridItem>
-        </Grid >
-        : <InlineLayout spacing={'none'} padding={'none'}>
-          <BlockStack inlineAlignment={'start'} spacing={'none'} padding={'none'}>
-            <Text>Total </Text>
-          </BlockStack>
-          <BlockStack inlineAlignment={'end'} spacing={'none'} padding={'none'}>
-            <Text emphasis='bold'>{Math.round(cartLineproductPrice)}</Text>
-          </BlockStack>
-        </InlineLayout>}
+          {Math.round(compareAtPrice) > 0 && <InlineLayout spacing={'none'} padding={'none'}>
+            <BlockStack inlineAlignment={'start'} spacing={'none'} padding={'none'}>
+              <Text>Your's Saving: </Text>
+            </BlockStack>
+            <BlockStack inlineAlignment={'end'} spacing={'none'} padding={'none'}>
+              <Text emphasis='bold'>{Math.round(cartLineproductPrice - compareAtPrice)} {currency}</Text>
+            </BlockStack>
+          </InlineLayout>}
+        </GridItem>
+      </Grid>
     </>
   );
 }

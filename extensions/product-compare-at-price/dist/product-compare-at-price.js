@@ -18434,6 +18434,11 @@ ${errorInfo.componentStack}`);
     return subscription.current;
   }
 
+  // extensions/product-compare-at-price/node_modules/@shopify/ui-extensions-react/build/esm/surfaces/checkout/hooks/cost.mjs
+  function useTotalAmount() {
+    return useSubscription(useApi().cost.totalAmount);
+  }
+
   // extensions/product-compare-at-price/node_modules/@shopify/ui-extensions-react/build/esm/surfaces/checkout/hooks/cart-lines.mjs
   function useCartLines() {
     const {
@@ -18449,102 +18454,105 @@ ${errorInfo.componentStack}`);
     "purchase.checkout.block.render",
     () => /* @__PURE__ */ (0, import_jsx_runtime4.jsx)(Extension, {})
   );
+  var currencies = {
+    "AED": "\u062F.\u0625",
+    "PKR": "Rs",
+    "AFN": "\u060B",
+    "ALL": "L",
+    "AMD": "\u058F",
+    "ANG": "\u0192",
+    "AOA": "Kz",
+    "ARS": "$",
+    "AUD": "$",
+    "AWG": "\u0192",
+    "AZN": "\u20BC",
+    "BAM": "KM",
+    "BBD": "$",
+    "BDT": "\u09F3",
+    "USD": "$",
+    "UYU": "$U",
+    "VES": "Bs",
+    "VND": "\u20AB",
+    "ZMW": "ZK",
+    "ZWL": "Z$"
+  };
   function Extension() {
-    const [products, setProducts] = (0, import_react14.useState)([]);
-    const [loading, setLoading] = (0, import_react14.useState)(false);
     const [compareAtPrice, setCompareAtPrice] = (0, import_react14.useState)(0);
+    const [currency, setCurrency] = (0, import_react14.useState)("");
     const { query } = useApi();
     const cartLine = useCartLines();
     const [cartLineproductPrice, setCartLineProductPrice] = (0, import_react14.useState)(0);
     const ProductIds = cartLine.map((item) => item.merchandise.title);
+    const { amount, currencyCode } = useTotalAmount();
     function fetchProducts() {
       return __async(this, null, function* () {
-        setLoading(true);
         try {
           const queries = ProductIds.map((pId) => ({
             query: `
-          query {
-            products(first: 1, query: "${pId}") {
-              nodes {
-                id
-                title
-                images(first: 1) {
-                  nodes {
-                    url
+        query {
+          products(first: 100, query: "${pId}") {
+            nodes {
+              id
+              title
+              variants(first: 1) {
+                nodes {
+                  id
+                  price {
+                    amount
+                    currencyCode
                   }
-                }
-                variants(first: 1) {
-                  nodes {
-                    id
-                    price {
-                      amount
-                      currencyCode
-                    }
-                    compareAtPrice {
-                      amount
-                      currencyCode
-                    }
+                  compareAtPrice {
+                    amount
+                    currencyCode
                   }
                 }
               }
             }
           }
+        }
         `
           }));
           const responses = yield Promise.all(
             queries.map((q) => query(q.query, { variables: { first: 1 } }))
           );
           const fetchedProducts = responses.map((response) => response.data.products.nodes[0]);
-          setProducts(fetchedProducts);
-        } catch (error) {
-          console.error(error);
-        } finally {
-          setLoading(false);
-        }
-      });
-    }
-    const checkStatus = () => {
-      if (loading) {
-        try {
           let totalCompareAtPrice = 0;
           let totalCartLineProductPrice = 0;
-          products.forEach((p) => {
-            var _a, _b, _c, _d;
-            if (!isNaN(parseFloat((_b = (_a = p.variants.nodes[0]) == null ? void 0 : _a.compareAtPrice) == null ? void 0 : _b.amount))) {
-              totalCompareAtPrice += parseFloat((_d = (_c = p.variants.nodes[0]) == null ? void 0 : _c.compareAtPrice) == null ? void 0 : _d.amount);
+          fetchedProducts.forEach((p) => {
+            var _a, _b, _c, _d, _e, _f;
+            if (!isNaN(Number((_b = (_a = p.variants.nodes[0]) == null ? void 0 : _a.compareAtPrice) == null ? void 0 : _b.amount))) {
+              totalCompareAtPrice += Number((_d = (_c = p.variants.nodes[0]) == null ? void 0 : _c.compareAtPrice) == null ? void 0 : _d.amount);
+              setCurrency(currencies[(_f = (_e = p.variants.nodes[0]) == null ? void 0 : _e.compareAtPrice) == null ? void 0 : _f.currencyCode]);
             }
-            totalCartLineProductPrice += parseFloat(p.variants.nodes[0].price.amount);
+            totalCartLineProductPrice += Number(p.variants.nodes[0].price.amount);
           });
-          console.log("totalCompareAtPrice:", totalCompareAtPrice);
-          console.log("totalCartLineProductPrice:", totalCartLineProductPrice);
           setCompareAtPrice(totalCompareAtPrice);
           setCartLineProductPrice(totalCartLineProductPrice);
         } catch (error) {
           console.error(error);
         }
-      }
-    };
+      });
+    }
     (0, import_react14.useEffect)(() => {
-      function fetchDataAndStatus() {
-        return __async(this, null, function* () {
-          yield fetchProducts();
-          yield checkStatus();
-        });
-      }
-      fetchDataAndStatus();
-    }, []);
-    return /* @__PURE__ */ (0, import_jsx_runtime4.jsx)(import_jsx_runtime4.Fragment, { children: compareAtPrice > 0 ? /* @__PURE__ */ (0, import_jsx_runtime4.jsx)(Grid2, { spacing: "none", padding: "none", children: /* @__PURE__ */ (0, import_jsx_runtime4.jsxs)(GridItem2, { padding: "none", children: [
+      fetchProducts();
+    }, [cartLine]);
+    return /* @__PURE__ */ (0, import_jsx_runtime4.jsx)(import_jsx_runtime4.Fragment, { children: /* @__PURE__ */ (0, import_jsx_runtime4.jsx)(Grid2, { spacing: "none", padding: "none", children: /* @__PURE__ */ (0, import_jsx_runtime4.jsxs)(GridItem2, { padding: "none", children: [
       /* @__PURE__ */ (0, import_jsx_runtime4.jsxs)(InlineLayout2, { spacing: "none", padding: "none", children: [
         /* @__PURE__ */ (0, import_jsx_runtime4.jsx)(BlockStack2, { inlineAlignment: "start", spacing: "none", padding: "none", children: /* @__PURE__ */ (0, import_jsx_runtime4.jsx)(Text2, { children: "Total: " }) }),
-        /* @__PURE__ */ (0, import_jsx_runtime4.jsx)(BlockStack2, { inlineAlignment: "end", spacing: "none", padding: "none", children: /* @__PURE__ */ (0, import_jsx_runtime4.jsx)(Text2, { emphasis: "bold", children: Math.round(compareAtPrice) }) })
+        /* @__PURE__ */ (0, import_jsx_runtime4.jsx)(BlockStack2, { inlineAlignment: "end", spacing: "none", padding: "none", children: /* @__PURE__ */ (0, import_jsx_runtime4.jsxs)(Text2, { emphasis: "bold", children: [
+          Math.round(compareAtPrice) > 0 ? amount : cartLineproductPrice,
+          " ",
+          currency
+        ] }) })
       ] }),
-      /* @__PURE__ */ (0, import_jsx_runtime4.jsxs)(InlineLayout2, { spacing: "none", padding: "none", children: [
+      Math.round(compareAtPrice) > 0 && /* @__PURE__ */ (0, import_jsx_runtime4.jsxs)(InlineLayout2, { spacing: "none", padding: "none", children: [
         /* @__PURE__ */ (0, import_jsx_runtime4.jsx)(BlockStack2, { inlineAlignment: "start", spacing: "none", padding: "none", children: /* @__PURE__ */ (0, import_jsx_runtime4.jsx)(Text2, { children: "Your's Saving: " }) }),
-        /* @__PURE__ */ (0, import_jsx_runtime4.jsx)(BlockStack2, { inlineAlignment: "end", spacing: "none", padding: "none", children: /* @__PURE__ */ (0, import_jsx_runtime4.jsx)(Text2, { emphasis: "bold", children: Math.round(cartLineproductPrice - compareAtPrice) }) })
+        /* @__PURE__ */ (0, import_jsx_runtime4.jsx)(BlockStack2, { inlineAlignment: "end", spacing: "none", padding: "none", children: /* @__PURE__ */ (0, import_jsx_runtime4.jsxs)(Text2, { emphasis: "bold", children: [
+          Math.round(cartLineproductPrice - compareAtPrice),
+          " ",
+          currency
+        ] }) })
       ] })
-    ] }) }) : /* @__PURE__ */ (0, import_jsx_runtime4.jsxs)(InlineLayout2, { spacing: "none", padding: "none", children: [
-      /* @__PURE__ */ (0, import_jsx_runtime4.jsx)(BlockStack2, { inlineAlignment: "start", spacing: "none", padding: "none", children: /* @__PURE__ */ (0, import_jsx_runtime4.jsx)(Text2, { children: "Total " }) }),
-      /* @__PURE__ */ (0, import_jsx_runtime4.jsx)(BlockStack2, { inlineAlignment: "end", spacing: "none", padding: "none", children: /* @__PURE__ */ (0, import_jsx_runtime4.jsx)(Text2, { emphasis: "bold", children: Math.round(cartLineproductPrice) }) })
-    ] }) });
+    ] }) }) });
   }
 })();
